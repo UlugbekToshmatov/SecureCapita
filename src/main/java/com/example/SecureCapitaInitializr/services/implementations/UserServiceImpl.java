@@ -65,17 +65,6 @@ public class UserServiceImpl implements UserService {
     }
 
     private User buildUser(UserRequest request, Integer roleId) {
-//        User user = User.builder()
-//            .firstName(request.getFirstName())
-//            .lastName(request.getLastName())
-//            .email(request.getEmail())
-//            .password(request.getPassword())
-//            .address(request.getAddress())
-//            .password(request.getPhone())
-//            .title(request.getTitle())
-//            .bio(request.getBio())
-//            .roleId(roleId)
-//            .build();
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
