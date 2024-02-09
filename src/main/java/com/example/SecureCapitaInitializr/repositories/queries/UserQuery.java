@@ -9,4 +9,15 @@ public class UserQuery {
             INSERT INTO users (first_name, last_name, email, password, role_id)
             VALUES (:firstName, :lastName, :email, :password, :roleId)
         """;
+
+    public static String SELECT_BY_EMAIL_QUERY = """
+                SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.address, u.phone, u.title, u.bio, u.image_url, u.enabled, u.locked, u.using_mfa, u.created_date, u.modified_date, r.name, r.permission
+                FROM users AS u JOIN roles AS r ON u.role_id=r.id
+                WHERE u.email=:email AND u.deleted=false
+            """;
+
+    public static String SELECT_ALL_BY_EMAIL_QUERY = """
+                SELECT * FROM users
+                WHERE email=:email AND deleted=false
+            """;
 }

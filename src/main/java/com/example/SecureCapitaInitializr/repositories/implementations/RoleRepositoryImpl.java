@@ -1,7 +1,7 @@
 package com.example.SecureCapitaInitializr.repositories.implementations;
 
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
-import com.example.SecureCapitaInitializr.models.Role;
+import com.example.SecureCapitaInitializr.models.role.Role;
 import com.example.SecureCapitaInitializr.repositories.RoleRepository;
 import com.example.SecureCapitaInitializr.rowmappers.RoleRowMapper;
 import lombok.RequiredArgsConstructor;

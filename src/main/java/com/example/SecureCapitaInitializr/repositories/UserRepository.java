@@ -1,6 +1,9 @@
 package com.example.SecureCapitaInitializr.repositories;
 
-import com.example.SecureCapitaInitializr.models.User;
+import com.example.SecureCapitaInitializr.models.user.User;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
@@ -14,4 +17,7 @@ public interface UserRepository<T extends User> {
 
     /* More Complex Operations */
     Integer getEmailCount(String email);
+    UserDetails loadUserByUsername(String email);
+
+    T findByEmailAndDeletedFalse(String email);
 }

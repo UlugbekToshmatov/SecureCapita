@@ -1,6 +1,6 @@
 package com.example.SecureCapitaInitializr.repositories.implementations;
 
-import com.example.SecureCapitaInitializr.models.AccountVerification;
+import com.example.SecureCapitaInitializr.models.accountverification.AccountVerification;
 import com.example.SecureCapitaInitializr.repositories.AccountVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;

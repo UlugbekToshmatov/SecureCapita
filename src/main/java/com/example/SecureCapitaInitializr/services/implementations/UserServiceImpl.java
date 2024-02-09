@@ -1,12 +1,13 @@
 package com.example.SecureCapitaInitializr.services.implementations;
 
+import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
-import com.example.SecureCapitaInitializr.models.AccountVerification;
-import com.example.SecureCapitaInitializr.models.Role;
-import com.example.SecureCapitaInitializr.models.User;
+import com.example.SecureCapitaInitializr.models.accountverification.AccountVerification;
+import com.example.SecureCapitaInitializr.models.role.Role;
+import com.example.SecureCapitaInitializr.models.user.User;
 import com.example.SecureCapitaInitializr.repositories.AccountVerificationRepository;
 import com.example.SecureCapitaInitializr.repositories.RoleRepository;
 import com.example.SecureCapitaInitializr.repositories.UserRepository;
@@ -54,6 +55,13 @@ public class UserServiceImpl implements UserService {
             log.error(exception.getMessage());
             throw new ApiException("An error occurred. Please, try again.");
         }
+    }
+
+    @Override
+    public void login(LoginForm form) {
+        User user = userRepository.findByEmailAndDeletedFalse(form.getEmail().trim().toLowerCase());
+        if (!passwordEncoder.matches(form.getPassword(), user.getPassword()))
+            throw new ApiException("Incorrect password. Please, try again.");
     }
 
     private String getVerificationUrl(String key, String type) {

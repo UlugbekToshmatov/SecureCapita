@@ -1,4 +1,4 @@
-package com.example.SecureCapitaInitializr.models;
+package com.example.SecureCapitaInitializr.models.role;
 
 import lombok.*;
 

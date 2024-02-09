@@ -1,10 +1,6 @@
-package com.example.SecureCapitaInitializr.models;
+package com.example.SecureCapitaInitializr.models.accountverification;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +8,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Getter
 @Setter
-@SuperBuilder
+@Builder
 public class AccountVerification {
     private Long id;
     private Long userId;

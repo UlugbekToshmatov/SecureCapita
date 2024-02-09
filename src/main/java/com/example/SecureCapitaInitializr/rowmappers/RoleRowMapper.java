@@ -1,6 +1,6 @@
 package com.example.SecureCapitaInitializr.rowmappers;
 
-import com.example.SecureCapitaInitializr.models.Role;
+import com.example.SecureCapitaInitializr.models.role.Role;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;

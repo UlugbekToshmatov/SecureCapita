@@ -1,4 +1,4 @@
-package com.example.SecureCapitaInitializr.models;
+package com.example.SecureCapitaInitializr.models.user;
 
 import lombok.*;
 
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-public class User {
+public class UserWithRole {
     private Long id;
     private String firstName;
     private String lastName;
@@ -25,5 +25,6 @@ public class User {
     private boolean usingMfa;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
-    private Integer roleId;
+    private String roleName;
+    private String permission;
 }

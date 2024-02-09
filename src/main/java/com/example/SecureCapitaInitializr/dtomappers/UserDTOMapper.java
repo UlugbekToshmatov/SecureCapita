@@ -1,8 +1,8 @@
 package com.example.SecureCapitaInitializr.dtomappers;
 
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
-import com.example.SecureCapitaInitializr.models.Role;
-import com.example.SecureCapitaInitializr.models.User;
+import com.example.SecureCapitaInitializr.models.role.Role;
+import com.example.SecureCapitaInitializr.models.user.User;
 import org.springframework.beans.BeanUtils;
 
 public class UserDTOMapper {
