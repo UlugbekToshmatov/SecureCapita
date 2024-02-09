@@ -49,4 +49,6 @@ public class UserPrincipal implements UserDetails {
     public boolean isEnabled() {
         return true/*this.user.isEnabled()*/;
     }
+
+    public UserWithRole getUser() { return this.user; }
 }

@@ -32,12 +32,17 @@ public class UserController {
     public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm form) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
 //        userService.login(form);
+        UserResponse user = userService.getByEmail(form.getEmail());
+        boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
+        if (sendSms) userService.sendVerificationCode(user);
+
         return ResponseEntity.ok().body(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
                 .statusCode(HttpStatus.OK.value())
                 .status(HttpStatus.OK)
-                .message("Login successful")
+                .message(sendSms? "Verification code sent to +" + user.getPhone(): "Login successful")
+                .data(Map.of("user", user))
                 .build()
         );
     }

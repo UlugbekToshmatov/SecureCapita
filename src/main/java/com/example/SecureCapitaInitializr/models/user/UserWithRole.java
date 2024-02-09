@@ -25,6 +25,6 @@ public class UserWithRole {
     private boolean usingMfa;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
-    private String roleName;
+    private String role;
     private String permission;
 }

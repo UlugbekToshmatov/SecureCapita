@@ -7,4 +7,8 @@ import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 public interface UserService {
     UserResponse create(UserRequest request);
     void login(LoginForm form);
+
+    UserResponse getByEmail(String email);
+
+    String sendVerificationCode(UserResponse user);
 }

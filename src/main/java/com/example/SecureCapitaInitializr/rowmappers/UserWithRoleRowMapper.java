@@ -25,7 +25,7 @@ public class UserWithRoleRowMapper implements RowMapper<UserWithRole> {
             .usingMfa(resultSet.getBoolean("using_mfa"))
             .createdDate(resultSet.getTimestamp("created_date").toLocalDateTime())
             .modifiedDate(resultSet.getTimestamp("modified_date").toLocalDateTime())
-            .roleName(resultSet.getString("name"))
+            .role(resultSet.getString("name"))
             .permission(resultSet.getString("permission"))
             .build();
     }
