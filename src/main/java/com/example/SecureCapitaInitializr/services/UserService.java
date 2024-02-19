@@ -10,5 +10,5 @@ public interface UserService {
 
     UserResponse getByEmail(String email);
 
-    String sendVerificationCode(UserResponse user);
+    void sendVerificationCode(UserResponse userResponse);
 }

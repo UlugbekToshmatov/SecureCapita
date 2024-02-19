@@ -5,6 +5,7 @@ import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
+import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
 import com.example.SecureCapitaInitializr.models.TwoFactorVerification;
 import com.example.SecureCapitaInitializr.models.accountverification.AccountVerification;
 import com.example.SecureCapitaInitializr.models.role.Role;
@@ -19,16 +20,12 @@ import com.example.SecureCapitaInitializr.utils.SmsUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.UUID;
 
 import static com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper.mapToUserResponse;
@@ -45,6 +42,7 @@ public class UserServiceImpl implements UserService {
     private final AccountVerificationRepository<AccountVerification> accountVerificationRepository;
     private final TwoFactorVerificationRepository<TwoFactorVerification> twoFactorVerificationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final TokenProvider tokenProvider;
 
     @Override
     @Transactional
@@ -79,13 +77,42 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse getByEmail(String email) {
         UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
-        return mapToUserResponse(userPrincipal.getUser());
+        UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
+        if (!userResponse.isUsingMfa()) {
+            userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
+            userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+        }
+        return userResponse;
     }
 
     @Override
     @Transactional
-    public String sendVerificationCode(UserResponse user) {
-        LocalDateTime expirationDate = LocalDateTime.of(
+    public void sendVerificationCode(UserResponse userResponse) {
+        LocalDateTime expirationDate = getExpirationDate();
+//        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
+        String verificationCode = RandomStringUtils.randomAlphanumeric(8);
+        final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
+        try {
+            twoFactorVerificationRepository.deleteVerificationCodesByUserId(userResponse.getId());
+            twoFactorVerificationRepository.insertVerificationCode(
+                userResponse.getId(),
+                verificationCode,
+                expirationDate
+            );
+            // Sends SMS to user if Twilio account is present
+            SmsUtils.sendSms(userResponse.getPhone(), message);
+        } catch (Exception exception) {
+            log.error(exception.getMessage() + ", line 105");
+            throw new ApiException("An error occurred. Please, try again.");
+        }
+    }
+
+    private String getVerificationUrl(String key, String type) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/user/verify/" + type + "/" + key).toUriString();
+    }
+
+    private LocalDateTime getExpirationDate() {
+        return LocalDateTime.of(
             LocalDateTime.now().getYear(),
             LocalDateTime.now().getMonth(),
             LocalDateTime.now().getDayOfMonth() + 1,
@@ -93,24 +120,6 @@ public class UserServiceImpl implements UserService {
             LocalDateTime.now().getMinute(),
             LocalDateTime.now().getSecond()
         );
-//        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
-        String verificationCode = RandomStringUtils.randomAlphanumeric(8);
-        final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
-        try {
-            twoFactorVerificationRepository.deleteVerificationCodesByUserId(user.getId());
-            twoFactorVerificationRepository.insertVerificationCode(user.getId(), verificationCode, expirationDate);
-            // Sends SMS to user if Twilio account is present
-            SmsUtils.sendSms(user.getPhone(), message);
-        } catch (Exception exception) {
-            log.error(exception.getMessage() + ", line 105");
-            throw new ApiException("An error occurred. Please, try again.");
-        }
-
-        return null;
-    }
-
-    private String getVerificationUrl(String key, String type) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/user/verify/" + type + "/" + key).toUriString();
     }
 
     private void sendEmail(String firstName, String email, String verificationUrl, VerificationType verificationType) {

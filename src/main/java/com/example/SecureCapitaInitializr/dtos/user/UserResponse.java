@@ -26,4 +26,6 @@ public class UserResponse {
     private LocalDateTime modifiedDate;
     private String role;
     private String permission;
+    private String accessToken;
+    private String refreshToken;
 }
