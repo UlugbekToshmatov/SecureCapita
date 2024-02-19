@@ -11,4 +11,9 @@ public class TwoFactorVerificationQuery {
                 INSERT INTO two_factor_verifications (user_id, code, expiration_date)
                 VALUES (:userId, :code, :expirationDate)
             """;
+
+    public static String GET_VERIFICATION_CODE_BY_USER_ID_QUERY = """
+                SELECT * FROM two_factor_verifications
+                WHERE user_id=:userId AND deleted=false
+            """;
 }

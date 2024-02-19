@@ -76,8 +76,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         try {
             log.info("Loading user with email " + email);
             UserWithRole user = jdbc.queryForObject(SELECT_BY_EMAIL_QUERY, Map.of("email", email), new UserWithRoleRowMapper() /*UserWithRole.class*/);
-            UserPrincipal userPrincipal = new UserPrincipal(user);
-            return userPrincipal;
+            return new UserPrincipal(user);
         } catch (EmptyResultDataAccessException exception) {
             log.error(exception.getMessage());
             throw new ApiException("User with email " + email + " not found");

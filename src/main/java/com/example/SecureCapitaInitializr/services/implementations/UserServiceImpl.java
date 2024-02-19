@@ -20,6 +20,7 @@ import com.example.SecureCapitaInitializr.utils.SmsUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,11 +101,35 @@ public class UserServiceImpl implements UserService {
                 expirationDate
             );
             // Sends SMS to user if Twilio account is present
-            SmsUtils.sendSms(userResponse.getPhone(), message);
+//            SmsUtils.sendSms(userResponse.getPhone(), message);
         } catch (Exception exception) {
             log.error(exception.getMessage() + ", line 105");
             throw new ApiException("An error occurred. Please, try again.");
         }
+    }
+
+    @Override
+    public UserResponse verifyCode(String email, String code) {
+        // get user by email
+        UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
+
+        // get id of the user and get the generated code from two factor verification repo with it
+        TwoFactorVerification twoFactorVerification =
+            twoFactorVerificationRepository.getCodeByUserId(userPrincipal.getUser().getId());
+
+        // check if the code is not expired
+        if (twoFactorVerification.getExpirationDate().isBefore(LocalDateTime.now()))
+            throw new ApiException("The code has expired. Please, login again.");
+
+        // if the two codes match, return response with tokens
+        if (twoFactorVerification.getCode().equals(code)) {
+            // first, invalidate the code sent back from email by user
+            twoFactorVerificationRepository.deleteVerificationCodesByUserId(userPrincipal.getUser().getId());
+            UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
+            userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
+            userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+            return userResponse;
+        } else throw new ApiException("Invalid code provided");
     }
 
     private String getVerificationUrl(String key, String type) {

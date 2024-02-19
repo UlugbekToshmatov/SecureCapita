@@ -13,6 +13,7 @@ public class TwoFactorVerification {
     private Long id;
     private Long userId;
     private String code;
+    private LocalDateTime expirationDate;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
 }

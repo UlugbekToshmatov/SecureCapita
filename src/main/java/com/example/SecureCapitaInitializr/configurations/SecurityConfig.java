@@ -27,7 +27,9 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
-    private static final String[] PUBLIC_URLS = { "/api/v1/user/login/**", "/api/v1/user/register/**" };
+    private static final String[] PUBLIC_URLS = {
+        "/api/v1/user/login/**", "/api/v1/user/register/**", "/api/v1/user/verify/code/**"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

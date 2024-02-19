@@ -10,15 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 
 @RestController
@@ -56,6 +54,20 @@ public class UserController {
                 .statusCode(HttpStatus.CREATED.value())
                 .status(HttpStatus.CREATED)
                 .message("User created")
+                .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @GetMapping("verify/code/{email}/{code}")
+    public ResponseEntity<HttpResponse> verify(@PathVariable("email") String email, @PathVariable("code") String code) {
+        UserResponse userResponse = userService.verifyCode(email, code);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("User verified")
                 .data(Map.of("user", userResponse))
                 .build()
         );
