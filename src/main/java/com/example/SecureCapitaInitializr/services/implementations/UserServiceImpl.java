@@ -92,6 +92,7 @@ public class UserServiceImpl implements UserService {
         LocalDateTime expirationDate = getExpirationDate();
 //        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
         String verificationCode = RandomStringUtils.randomAlphanumeric(8);
+        System.out.println(verificationCode);
         final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
         try {
             twoFactorVerificationRepository.deleteVerificationCodesByUserId(userResponse.getId());
@@ -100,7 +101,7 @@ public class UserServiceImpl implements UserService {
                 verificationCode,
                 expirationDate
             );
-            // Sends SMS to user if Twilio account is present
+            // Sends SMS to user if you have Twilio account
 //            SmsUtils.sendSms(userResponse.getPhone(), message);
         } catch (Exception exception) {
             log.error(exception.getMessage() + ", line 105");

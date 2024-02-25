@@ -1,5 +1,6 @@
 package com.example.SecureCapitaInitializr.configurations;
 
+import com.example.SecureCapitaInitializr.filter.AuthFilter;
 import com.example.SecureCapitaInitializr.handlers.CustomAccessDeniedHandler;
 import com.example.SecureCapitaInitializr.handlers.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -26,6 +28,7 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final AuthFilter authFilter;
 
     private static final String[] PUBLIC_URLS = {
         "/api/v1/user/login/**", "/api/v1/user/register/**", "/api/v1/user/verify/code/**"
@@ -40,6 +43,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/customer/delete/**").hasAnyAuthority("DELETE:CUSTOMER");
         http.exceptionHandling().accessDeniedHandler(accessDeniedHandler).authenticationEntryPoint(authenticationEntryPoint);
         http.authorizeHttpRequests().anyRequest().authenticated();
+        http.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

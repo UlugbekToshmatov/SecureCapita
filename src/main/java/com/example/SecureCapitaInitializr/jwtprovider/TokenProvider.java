@@ -71,14 +71,23 @@ public class TokenProvider {
         return usernamePasswordAuthToken;
     }
 
+    // If token was expired/invalid, getSubject() would return null, which would cause getRequestHeaders() throw NullPointerException.
+    // So, if this method is reached, then getSubject() must have returned a valid email from a valid token (not expired).
     public boolean isTokenValid(String email, String token) {
         JWTVerifier verifier = getJwtVerifier();
-        return StringUtils.isNotEmpty(email) && !isTokenExpired(verifier, token);
+
+        // Check if email matches the subject/email in token
+        String subject = verifier.verify(token).getSubject();
+        if (StringUtils.isEmpty(email) || !subject.equalsIgnoreCase(email))
+            return false;
+
+        // Since this method is reached and getSubject() returned a valid email from a valid token, this check is unnecessary
+        return !isTokenExpired(verifier, token);
     }
 
     private boolean isTokenExpired(JWTVerifier verifier, String token) {
         Date expiration = verifier.verify(token).getExpiresAt();
-        return expiration.before(new Date());
+        return expiration.before(new Date(/*System.currentTimeMillis()*/));
     }
 
     private String[] getClaimsFromToken(String token) {

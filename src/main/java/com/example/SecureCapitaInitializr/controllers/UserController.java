@@ -10,13 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.Map;
 
 @RestController
@@ -54,6 +54,20 @@ public class UserController {
                 .statusCode(HttpStatus.CREATED.value())
                 .status(HttpStatus.CREATED)
                 .message("User created")
+                .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @GetMapping("profile")
+    public ResponseEntity<HttpResponse> getProfile(Authentication authentication) {
+        UserResponse userResponse = userService.getByEmail(authentication.getName() /*authentication.getPrincipal()*/);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Profile retrieved")
                 .data(Map.of("user", userResponse))
                 .build()
         );
