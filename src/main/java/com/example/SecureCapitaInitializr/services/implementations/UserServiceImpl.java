@@ -16,8 +16,6 @@ import com.example.SecureCapitaInitializr.repositories.RoleRepository;
 import com.example.SecureCapitaInitializr.repositories.TwoFactorVerificationRepository;
 import com.example.SecureCapitaInitializr.repositories.UserRepository;
 import com.example.SecureCapitaInitializr.services.UserService;
-import com.example.SecureCapitaInitializr.utils.SmsUtils;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -38,7 +36,6 @@ import static com.example.SecureCapitaInitializr.enums.VerificationType.ACCOUNT;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
-    private final String LOGIN_URI = "/api/v1/user/login";
     private final UserRepository<User> userRepository;
     private final RoleRepository<Role> roleRepository;
     private final AccountVerificationRepository<AccountVerification> accountVerificationRepository;
@@ -77,14 +74,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getByEmail(String email, HttpServletRequest request) {
+    public UserResponse getByEmail(String email) {
         UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
-        UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
-        if (request.getRequestURI().equals(LOGIN_URI) && !userResponse.isUsingMfa()) {
-            userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
-            userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
-        }
-        return userResponse;
+        return mapToUserResponse(userPrincipal.getUser());
     }
 
     @Override
