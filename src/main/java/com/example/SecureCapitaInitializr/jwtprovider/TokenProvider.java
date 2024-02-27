@@ -56,6 +56,8 @@ public class TokenProvider {
             request.setAttribute("expiredMessage", exception.getMessage());
         } catch (InvalidClaimException exception) {
             request.setAttribute("invalidClaim", exception.getMessage());
+        } catch (JWTVerificationException exception) {
+            request.setAttribute("tokenNotVerified", exception.getMessage());
         }
         return subject;
     }

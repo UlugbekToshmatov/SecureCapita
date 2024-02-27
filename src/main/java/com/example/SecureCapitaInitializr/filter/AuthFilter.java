@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.SecureCapitaInitializr.utils.ExceptionUtils.processError;
 import static java.util.Optional.ofNullable;
 import static org.apache.logging.log4j.util.Strings.EMPTY;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -39,17 +40,18 @@ public class AuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filter) throws ServletException, IOException {
         try {
-            Map<String, String> headers = getRequestHeaders(request);
+//            Map<String, String> headers = getRequestHeaders(request);
             String token = getToken(request);
-            if (tokenProvider.isTokenValid(headers.get(EMAIL_KEY), token)) {
+            String email = tokenProvider.getSubject(token, request);
+            if (tokenProvider.isTokenValid(email, token)) {
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
-                Authentication authentication = tokenProvider.getAuthentication(headers.get(EMAIL_KEY), authorities, request);
+                Authentication authentication = tokenProvider.getAuthentication(email, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else { SecurityContextHolder.clearContext(); }
             filter.doFilter(request, response);
         } catch (Exception exception) {
             log.error(exception.getMessage());
-//            processError(request, response, exception);
+            processError(response, exception);
         }
     }
 
