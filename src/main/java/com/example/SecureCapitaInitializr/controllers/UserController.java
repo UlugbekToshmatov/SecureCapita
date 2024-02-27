@@ -5,6 +5,7 @@ import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.models.HttpResponse;
 import com.example.SecureCapitaInitializr.services.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,6 +84,18 @@ public class UserController {
                 .status(HttpStatus.OK)
                 .message("User verified")
                 .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @RequestMapping("error")
+    public ResponseEntity<HttpResponse> error(HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .status(HttpStatus.BAD_REQUEST)
+                .reason("No mapping for a " + request.getMethod() + " request for this path found on the server")
                 .build()
         );
     }

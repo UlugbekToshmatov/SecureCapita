@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
+// Implementing ErrorController is necessary for handling 404 not found error
 @RestControllerAdvice
 @Slf4j
 public class HandleException extends ResponseEntityExceptionHandler implements ErrorController {
