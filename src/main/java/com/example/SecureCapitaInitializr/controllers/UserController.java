@@ -1,9 +1,12 @@
 package com.example.SecureCapitaInitializr.controllers;
 
+import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.models.HttpResponse;
+import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
+import com.example.SecureCapitaInitializr.models.user.UserWithRole;
 import com.example.SecureCapitaInitializr.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +31,10 @@ public class UserController {
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("login")
-    public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm form) {
+    public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm form, HttpServletRequest request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
 //        userService.login(form);
-        UserResponse user = userService.getByEmail(form.getEmail());
+        UserResponse user = userService.getByEmail(form.getEmail(), request);
         boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
         if (sendSms) userService.sendVerificationCode(user);
 
@@ -61,8 +64,8 @@ public class UserController {
     }
 
     @GetMapping("profile")
-    public ResponseEntity<HttpResponse> getProfile(Authentication authentication) {
-        UserResponse userResponse = userService.getByEmail(authentication.getName() /*authentication.getPrincipal()*/);
+    public ResponseEntity<HttpResponse> getProfile(Authentication authentication, HttpServletRequest request) {
+        UserResponse userResponse = userService.getByEmail(authentication.getName() /*authentication.getPrincipal()*/, request);
         return ResponseEntity.ok().body(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())

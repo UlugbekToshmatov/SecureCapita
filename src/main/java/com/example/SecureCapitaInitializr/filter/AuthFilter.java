@@ -43,6 +43,7 @@ public class AuthFilter extends OncePerRequestFilter {
 //            Map<String, String> headers = getRequestHeaders(request);
             String token = getToken(request);
             String email = tokenProvider.getSubject(token, request);
+            log.info("Validating user with email '{}' in Filter", email);
             if (tokenProvider.isTokenValid(email, token)) {
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
                 Authentication authentication = tokenProvider.getAuthentication(email, authorities, request);

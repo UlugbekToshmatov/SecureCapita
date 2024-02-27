@@ -17,10 +17,10 @@ import com.example.SecureCapitaInitializr.repositories.TwoFactorVerificationRepo
 import com.example.SecureCapitaInitializr.repositories.UserRepository;
 import com.example.SecureCapitaInitializr.services.UserService;
 import com.example.SecureCapitaInitializr.utils.SmsUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +38,7 @@ import static com.example.SecureCapitaInitializr.enums.VerificationType.ACCOUNT;
 @Slf4j
 public class UserServiceImpl implements UserService {
     private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
+    private final String LOGIN_URI = "/api/v1/user/login";
     private final UserRepository<User> userRepository;
     private final RoleRepository<Role> roleRepository;
     private final AccountVerificationRepository<AccountVerification> accountVerificationRepository;
@@ -76,10 +77,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getByEmail(String email) {
+    public UserResponse getByEmail(String email, HttpServletRequest request) {
         UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
         UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
-        if (!userResponse.isUsingMfa()) {
+        if (request.getRequestURI().equals(LOGIN_URI) && !userResponse.isUsingMfa()) {
             userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
             userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
         }
@@ -104,7 +105,7 @@ public class UserServiceImpl implements UserService {
             // Sends SMS to user if you have Twilio account
 //            SmsUtils.sendSms(userResponse.getPhone(), message);
         } catch (Exception exception) {
-            log.error(exception.getMessage() + ", line 105");
+            log.error(exception.getMessage());
             throw new ApiException("An error occurred. Please, try again.");
         }
     }
