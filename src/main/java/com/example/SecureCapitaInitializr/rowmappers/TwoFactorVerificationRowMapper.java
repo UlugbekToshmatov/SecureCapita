@@ -1,6 +1,6 @@
 package com.example.SecureCapitaInitializr.rowmappers;
 
-import com.example.SecureCapitaInitializr.models.TwoFactorVerification;
+import com.example.SecureCapitaInitializr.models.twoFactorVerification.TwoFactorVerification;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.sql.ResultSet;

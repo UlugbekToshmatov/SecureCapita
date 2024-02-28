@@ -1,20 +1,20 @@
 package com.example.SecureCapitaInitializr.services.implementations;
 
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
+import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
-import com.example.SecureCapitaInitializr.models.TwoFactorVerification;
+import com.example.SecureCapitaInitializr.models.resetPasswordVerification.ResetPasswordVerification;
+import com.example.SecureCapitaInitializr.models.twoFactorVerification.TwoFactorVerification;
 import com.example.SecureCapitaInitializr.models.accountverification.AccountVerification;
 import com.example.SecureCapitaInitializr.models.role.Role;
 import com.example.SecureCapitaInitializr.models.user.User;
 import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
-import com.example.SecureCapitaInitializr.repositories.AccountVerificationRepository;
-import com.example.SecureCapitaInitializr.repositories.RoleRepository;
-import com.example.SecureCapitaInitializr.repositories.TwoFactorVerificationRepository;
-import com.example.SecureCapitaInitializr.repositories.UserRepository;
+import com.example.SecureCapitaInitializr.models.user.UserWithRole;
+import com.example.SecureCapitaInitializr.repositories.*;
 import com.example.SecureCapitaInitializr.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +30,7 @@ import java.util.UUID;
 import static com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper.mapToUserResponse;
 import static com.example.SecureCapitaInitializr.enums.RoleType.ROLE_USER;
 import static com.example.SecureCapitaInitializr.enums.VerificationType.ACCOUNT;
+import static com.example.SecureCapitaInitializr.enums.VerificationType.PASSWORD;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository<Role> roleRepository;
     private final AccountVerificationRepository<AccountVerification> accountVerificationRepository;
     private final TwoFactorVerificationRepository<TwoFactorVerification> twoFactorVerificationRepository;
+    private final ResetPasswordVerificationRepository<ResetPasswordVerification> resetPasswordVerificationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
 
@@ -85,7 +87,7 @@ public class UserServiceImpl implements UserService {
         LocalDateTime expirationDate = getExpirationDate();
 //        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
         String verificationCode = RandomStringUtils.randomAlphanumeric(8);
-        System.out.println(verificationCode);
+        log.info("Verification code: {}", verificationCode);
         final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
         try {
             twoFactorVerificationRepository.deleteVerificationCodesByUserId(userResponse.getId());
@@ -124,6 +126,44 @@ public class UserServiceImpl implements UserService {
             userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
             return userResponse;
         } else throw new ApiException("Invalid code provided");
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String email) {
+        // Working without try-catch blocks as exception handlers handle any exceptions
+        User user = userRepository.findByEmailAndDeletedFalse(email.trim().toLowerCase());
+        if (user == null)
+            throw new ApiException("No user found with email '"+ email + "'");
+
+        LocalDateTime expirationDate = getExpirationDate();
+        String verificationUrl = getVerificationUrl(UUID.randomUUID().toString(), PASSWORD.getType());
+        resetPasswordVerificationRepository.deletePasswordVerificationCodesByUserId(user.getId());
+        resetPasswordVerificationRepository.insertPasswordVerificationCode(user.getId(), verificationUrl, expirationDate);
+        // send verification URL to email
+        log.info("Verification url '{}' sent to email address '{}'", verificationUrl, email);
+    }
+
+    @Override
+    public UserResponse verifyPasswordKey(String key) {
+        UserWithRole user = resetPasswordVerificationRepository.verifyPasswordKey(getVerificationUrl(key, PASSWORD.getType()));
+        return mapToUserResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public void updatePasswordWithKey(String key, NewPasswordForm form) {
+        ResetPasswordVerification verification = resetPasswordVerificationRepository.getVerificationByUrl(getVerificationUrl(key, PASSWORD.getType()));
+        if (verification == null)
+            throw new ApiException("Invalid key");
+        if (verification.getExpirationDate().isBefore(LocalDateTime.now()))
+            throw new ApiException("This link has expired. Please, reset your password again.");
+
+        if (!form.getPassword().equals(form.getConfirmPassword()))
+            throw new ApiException("Passwords do not match. Please, try again.");
+
+        userRepository.updatePasswordByUserId(verification.getUserId(), passwordEncoder.encode(form.getConfirmPassword()));
+        resetPasswordVerificationRepository.deletePasswordVerificationCodesByUserId(verification.getUserId());
     }
 
     private String getVerificationUrl(String key, String type) {

@@ -2,6 +2,7 @@ package com.example.SecureCapitaInitializr.controllers;
 
 import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
+import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
@@ -83,8 +84,52 @@ public class UserController {
         );
     }
 
+    // Start - To reset password when user is not logged in
+
+    @GetMapping("resetpassword/{email}")
+    public ResponseEntity<HttpResponse> resetPassword(@PathVariable String email) {
+        userService.resetPassword(email);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(String.valueOf(LocalDateTime.now()))
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Email sent. Please, check your email to reset your password.")
+                .build()
+        );
+    }
+
+    @GetMapping("verify/password/{key}")
+    public ResponseEntity<HttpResponse> verifyResetPasswordUrl(@PathVariable("key") String key) {
+        UserResponse userResponse = userService.verifyPasswordKey(key);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Please, enter a new password")
+                .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @PutMapping("resetpassword/{key}")
+    public ResponseEntity<HttpResponse> resetPasswordWithKey(@PathVariable("key") String key, @RequestBody NewPasswordForm form) {
+        userService.updatePasswordWithKey(key, form);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Password reset successfully")
+                .build()
+        );
+    }
+
+    // END - To reset password when user is not logged in
+
     @GetMapping("verify/code/{email}/{code}")
-    public ResponseEntity<HttpResponse> verify(@PathVariable("email") String email, @PathVariable("code") String code) {
+    public ResponseEntity<HttpResponse> verifyCode(@PathVariable("email") String email, @PathVariable("code") String code) {
         UserResponse userResponse = userService.verifyCode(email, code);
         return ResponseEntity.ok().body(
             HttpResponse.builder()
@@ -99,13 +144,13 @@ public class UserController {
 
     @RequestMapping("error")
     public ResponseEntity<HttpResponse> error(HttpServletRequest request) {
-        return ResponseEntity.badRequest().body(
+        return new ResponseEntity<>(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
-                .statusCode(HttpStatus.BAD_REQUEST.value())
-                .status(HttpStatus.BAD_REQUEST)
+                .statusCode(HttpStatus.NOT_FOUND.value())
+                .status(HttpStatus.NOT_FOUND)
                 .reason("No mapping for a " + request.getMethod() + " request for this path found on the server")
-                .build()
+                .build(), HttpStatus.NOT_FOUND
         );
     }
 

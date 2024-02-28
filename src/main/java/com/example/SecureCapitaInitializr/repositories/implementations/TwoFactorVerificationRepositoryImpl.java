@@ -1,7 +1,7 @@
 package com.example.SecureCapitaInitializr.repositories.implementations;
 
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
-import com.example.SecureCapitaInitializr.models.TwoFactorVerification;
+import com.example.SecureCapitaInitializr.models.twoFactorVerification.TwoFactorVerification;
 import com.example.SecureCapitaInitializr.repositories.TwoFactorVerificationRepository;
 import com.example.SecureCapitaInitializr.rowmappers.TwoFactorVerificationRowMapper;
 import lombok.RequiredArgsConstructor;

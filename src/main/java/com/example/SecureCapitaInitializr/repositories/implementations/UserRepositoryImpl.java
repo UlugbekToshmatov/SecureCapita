@@ -98,6 +98,11 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
     }
 
+    @Override
+    public void updatePasswordByUserId(Long userId, String newPassword) {
+        jdbc.update(UPDATE_PASSWORD_BY_ID, Map.of("newPassword", newPassword, "userId", userId));
+    }
+
     private SqlParameterSource getSqlParameterSource(User user) {
         return new MapSqlParameterSource(
             Map.of(

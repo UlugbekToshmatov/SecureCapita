@@ -20,4 +20,8 @@ public class UserQuery {
                 SELECT * FROM users
                 WHERE email=:email AND deleted=false
             """;
+
+    public static final String UPDATE_PASSWORD_BY_ID = """
+            UPDATE users SET password=:newPassword WHERE id=:userId
+        """;
 }

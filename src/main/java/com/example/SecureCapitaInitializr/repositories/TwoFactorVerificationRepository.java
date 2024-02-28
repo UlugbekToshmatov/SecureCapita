@@ -1,6 +1,6 @@
 package com.example.SecureCapitaInitializr.repositories;
 
-import com.example.SecureCapitaInitializr.models.TwoFactorVerification;
+import com.example.SecureCapitaInitializr.models.twoFactorVerification.TwoFactorVerification;
 
 import java.time.LocalDateTime;
 
