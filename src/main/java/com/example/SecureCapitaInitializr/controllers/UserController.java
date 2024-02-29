@@ -39,7 +39,7 @@ public class UserController {
         UserResponse user = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
         boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
         if (sendSms)
-            userService.sendVerificationCode(user);
+            userService.sendMfaVerificationCode(user);
         else {
             user.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
             user.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
@@ -128,9 +128,9 @@ public class UserController {
 
     // END - To reset password when user is not logged in
 
-    @GetMapping("verify/code/{email}/{code}")
-    public ResponseEntity<HttpResponse> verifyCode(@PathVariable("email") String email, @PathVariable("code") String code) {
-        UserResponse userResponse = userService.verifyCode(email, code);
+    @GetMapping("verify/mfacode/{email}/{code}")
+    public ResponseEntity<HttpResponse> verifyMfaCode(@PathVariable("email") String email, @PathVariable("code") String code) {
+        UserResponse userResponse = userService.verifyMfaCode(email, code);
         return ResponseEntity.ok().body(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())

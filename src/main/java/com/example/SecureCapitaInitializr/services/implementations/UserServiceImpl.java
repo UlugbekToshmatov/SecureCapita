@@ -83,16 +83,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void sendVerificationCode(UserResponse userResponse) {
+    public void sendMfaVerificationCode(UserResponse user) {
         LocalDateTime expirationDate = getExpirationDate();
 //        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
         String verificationCode = RandomStringUtils.randomAlphanumeric(8);
         log.info("Verification code: {}", verificationCode);
         final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
         try {
-            twoFactorVerificationRepository.deleteVerificationCodesByUserId(userResponse.getId());
+            twoFactorVerificationRepository.deleteVerificationCodesByUserId(user.getId());
             twoFactorVerificationRepository.insertVerificationCode(
-                userResponse.getId(),
+                user.getId(),
                 verificationCode,
                 expirationDate
             );
@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse verifyCode(String email, String code) {
+    public UserResponse verifyMfaCode(String email, String code) {
         // get user by email
         UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
 
@@ -119,11 +119,11 @@ public class UserServiceImpl implements UserService {
 
         // if the two codes match, return response with tokens
         if (twoFactorVerification.getCode().equals(code)) {
-            // first, invalidate the code sent back from email by user
-            twoFactorVerificationRepository.deleteVerificationCodesByUserId(userPrincipal.getUser().getId());
             UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
             userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
             userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+            // invalidate the code sent back from email by user at the end for data integrity purposes in case of an error
+            twoFactorVerificationRepository.deleteVerificationCodesByUserId(userPrincipal.getUser().getId());
             return userResponse;
         } else throw new ApiException("Invalid code provided");
     }

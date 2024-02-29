@@ -11,9 +11,9 @@ public interface UserService {
 
     UserResponse getByEmail(String email);
 
-    void sendVerificationCode(UserResponse userResponse);
+    void sendMfaVerificationCode(UserResponse user);
 
-    UserResponse verifyCode(String email, String code);
+    UserResponse verifyMfaCode(String email, String code);
 
     void resetPassword(String email);
 

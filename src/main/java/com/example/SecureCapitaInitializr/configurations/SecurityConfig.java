@@ -31,7 +31,7 @@ public class SecurityConfig {
     private final AuthFilter authFilter;
 
     private static final String[] PUBLIC_URLS = {
-        "/api/v1/user/login/**", "/api/v1/user/register/**", "/api/v1/user/verify/code/**", "/api/v1/user/resetpassword/**",
+        "/api/v1/user/login/**", "/api/v1/user/register/**", "/api/v1/user/verify/mfacode/**", "/api/v1/user/resetpassword/**",
         "/api/v1/user/verify/password/**"
     };
 
