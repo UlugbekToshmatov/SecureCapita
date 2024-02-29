@@ -20,9 +20,9 @@ public class User {
     private String title;
     private String bio;
     private String imageUrl;
-    private boolean enabled;
-    private boolean locked;
-    private boolean usingMfa;
+    private Boolean enabled;
+    private Boolean locked;
+    private Boolean usingMfa;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
     private Integer roleId;

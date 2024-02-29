@@ -13,6 +13,4 @@ public class AccountVerification {
     private Long id;
     private Long userId;
     private String url;
-    private LocalDateTime createdDate;
-    private LocalDateTime modifiedDate;
 }

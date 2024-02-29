@@ -108,8 +108,8 @@ public class HandleException extends ResponseEntityExceptionHandler implements E
         return new ResponseEntity<>(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
-//                .reason(exception.getMessage() + ". Please, check your email and verify your account.")
-                .reason("User account currently disabled")
+                .reason(exception.getMessage() + ". Please, check your email and verify your account.")
+//                .reason("User account currently disabled")
                 .developerMessage(exception.getMessage())
                 .status(HttpStatus.BAD_REQUEST)
                 .statusCode(HttpStatus.BAD_REQUEST.value())

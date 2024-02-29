@@ -4,4 +4,6 @@ import com.example.SecureCapitaInitializr.models.accountverification.AccountVeri
 
 public interface AccountVerificationRepository<T extends AccountVerification> {
     void saveActivationLink(Long userId, String verificationUrl);
+    T getAccountVerificationByUserId(Long userId);
+    void deleteAccountVerificationUrlByUserId(Long userId);
 }

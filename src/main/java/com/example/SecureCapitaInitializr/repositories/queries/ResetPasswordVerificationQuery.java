@@ -8,7 +8,7 @@ public class ResetPasswordVerificationQuery {
     public static final String DELETE_PASSWORD_VERIFICATION_CODES_BY_USER_ID_QUERY = """
                 UPDATE reset_password_verifications
                 SET deleted=true, modified_date=CURRENT_TIMESTAMP
-                WHERE user_id=:userId
+                WHERE user_id=:userId AND deleted=false
             """;
 
     public static final String INSERT_PASSWORD_VERIFICATION_CODE_QUERY = """

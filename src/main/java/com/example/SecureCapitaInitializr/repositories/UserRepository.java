@@ -20,4 +20,5 @@ public interface UserRepository<T extends User> {
     UserDetails loadUserByUsername(String email);
     T findByEmailAndDeletedFalse(String email);
     void updatePasswordByUserId(Long userId, @NotEmpty(message = "New password cannot be empty") String newPassword);
+    void activateUser(Long userId);
 }

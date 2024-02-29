@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotEmpty;
 @Setter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-public class UserRequest {
+public class UserRegistrationForm {
     @NotEmpty(message = "First name cannot be empty")
     private String firstName;
     @NotEmpty(message = "Last name cannot be empty")
@@ -26,6 +26,7 @@ public class UserRequest {
     private String phone;
     private String title;
     private String bio;
+    private Boolean usingMfa;
     @NotEmpty(message = "Role cannot be empty")
     private String role;
 }

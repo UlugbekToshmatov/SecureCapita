@@ -1,6 +1,8 @@
 package com.example.SecureCapitaInitializr.filter;
 
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
+import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
+import com.example.SecureCapitaInitializr.repositories.implementations.UserRepositoryImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,10 +32,11 @@ public class AuthFilter extends OncePerRequestFilter {
     private static final String TOKEN_PREFIX = "Bearer ";
     // PUBLIC_ROUTES must have exact routes unlike the ones in SecurityConfig
     private static final String[] PUBLIC_ROUTES = {
-        "/api/v1/user/login", "/api/v1/user/register", "/api/v1/user/verify/code"
+        "/api/v1/user/login", "/api/v1/user/register", "/api/v1/user/verify/mfacode", "/api/v1/user/resetpassword"
     };
     private static final String HTTP_OPTIONS_METHOD = "OPTIONS";
     private final TokenProvider tokenProvider;
+    private final UserRepositoryImpl userRepository;
     private final String TOKEN_KEY = "token";
     private final String EMAIL_KEY = "email";
 
@@ -45,6 +48,8 @@ public class AuthFilter extends OncePerRequestFilter {
             String email = tokenProvider.getSubject(token, request);
             log.info("Validating user with email '{}' in Filter", email);
             if (tokenProvider.isTokenValid(email, token)) {
+                // pass UserPrincipal to Authentication to access any data of the requesting user anywhere
+//                UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
                 Authentication authentication = tokenProvider.getAuthentication(email, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);

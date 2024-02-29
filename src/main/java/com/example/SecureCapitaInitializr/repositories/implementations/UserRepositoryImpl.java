@@ -37,13 +37,18 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     public User create(User user) {
         KeyHolder holder = new GeneratedKeyHolder();
         SqlParameterSource parameters = getSqlParameterSource(user);
-        jdbc.update(INSERT_INTO_USERS_QUERY, parameters, holder);
-        user.setCreatedDate(LocalDateTime.now());
+        if (user.getUsingMfa() == null) {
+            jdbc.update(INSERT_INTO_USERS_QUERY, parameters, holder);
+            user.setUsingMfa(Boolean.FALSE);
+        } else {
+            jdbc.update(INSERT_INTO_USERS_WITH_MFA_ENABLED_QUERY, parameters, holder);
+            user.setUsingMfa(Boolean.TRUE);
+        }
         Long id = (Long) requireNonNull(holder.getKeys()).get("id");
         user.setId(id);
+        user.setCreatedDate(LocalDateTime.now());
         user.setEnabled(Boolean.FALSE);
         user.setLocked(Boolean.FALSE);
-        user.setUsingMfa(Boolean.FALSE);
         return user;
     }
 
@@ -71,11 +76,12 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         return jdbc.queryForObject(COUNT_USERS_BY_EMAIL_QUERY, Map.of("email", email), Integer.class);
     }
 
+    // loadUserByUsername() returns UserDetails with UserWithRole in it
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         try {
             log.info("Loading user with email " + email);
-            UserWithRole user = jdbc.queryForObject(SELECT_BY_EMAIL_QUERY, Map.of("email", email), new UserWithRoleRowMapper() /*UserWithRole.class*/);
+            UserWithRole user = jdbc.queryForObject(SELECT_USER_WITH_ROLE_BY_EMAIL_QUERY, Map.of("email", email), new UserWithRoleRowMapper() /*UserWithRole.class*/);
             return new UserPrincipal(user);
         } catch (EmptyResultDataAccessException exception) {
             log.error(exception.getMessage());
@@ -85,6 +91,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
     }
 
+    // findByEmailAndDeletedFalse() returns just User without role
     @Override
     public User findByEmailAndDeletedFalse(String email) {
         try {
@@ -99,12 +106,17 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     }
 
     @Override
-    public void updatePasswordByUserId(Long userId, String newPassword) {
-        jdbc.update(UPDATE_PASSWORD_BY_ID, Map.of("newPassword", newPassword, "userId", userId));
+    public void updatePasswordByUserId(Long userId, String confirmPassword) {
+        jdbc.update(UPDATE_PASSWORD_BY_ID, Map.of("confirmPassword", confirmPassword, "userId", userId));
+    }
+
+    @Override
+    public void activateUser(Long userId) {
+        jdbc.update(UPDATE_ENABLED_BY_USER_ID_QUERY, Map.of("userId", userId));
     }
 
     private SqlParameterSource getSqlParameterSource(User user) {
-        return new MapSqlParameterSource(
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource(
             Map.of(
                 "firstName", user.getFirstName(),
                 "lastName", user.getLastName(),
@@ -113,5 +125,8 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
                 "roleId", user.getRoleId()
             )
         );
+        if (user.getUsingMfa() != null)
+            parameterSource.addValue("usingMfa", user.getUsingMfa());
+        return parameterSource;
     }
 }

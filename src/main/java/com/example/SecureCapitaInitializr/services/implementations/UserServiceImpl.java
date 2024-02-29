@@ -1,8 +1,9 @@
 package com.example.SecureCapitaInitializr.services.implementations;
 
+import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserRequest;
+import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
@@ -19,12 +20,18 @@ import com.example.SecureCapitaInitializr.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.UUID;
 
 import static com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper.mapToUserResponse;
@@ -36,7 +43,6 @@ import static com.example.SecureCapitaInitializr.enums.VerificationType.PASSWORD
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private static final String DATE_FORMAT = "yyyy-MM-dd hh:mm:ss";
     private final UserRepository<User> userRepository;
     private final RoleRepository<Role> roleRepository;
     private final AccountVerificationRepository<AccountVerification> accountVerificationRepository;
@@ -44,10 +50,13 @@ public class UserServiceImpl implements UserService {
     private final ResetPasswordVerificationRepository<ResetPasswordVerification> resetPasswordVerificationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final AuthenticationManager authenticationManager;
 
+
+    // START - To register with account verification
     @Override
     @Transactional
-    public UserResponse create(UserRequest request) {
+    public UserResponse create(UserRegistrationForm request) {
         log.info("Registering user-{} with email: '{}'", request.getFirstName(), request.getEmail());
         if (userRepository.getEmailCount(request.getEmail().trim().toLowerCase()) > 0)
             throw new ApiException("Email already in use. Please, use a different email and try again.");
@@ -69,23 +78,43 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void login(LoginForm form) {
-        User user = userRepository.findByEmailAndDeletedFalse(form.getEmail().trim().toLowerCase());
-        if (!passwordEncoder.matches(form.getPassword(), user.getPassword()))
-            throw new ApiException("Incorrect password. Please, try again.");
-    }
+    @Transactional
+    public void verifyAccountKey(String key, String email) {
+        // get user by email
+        User user = userRepository.findByEmailAndDeletedFalse(email.trim().toLowerCase());
 
+        // get account verification by userId
+        AccountVerification accountVerification = accountVerificationRepository.getAccountVerificationByUserId(user.getId());
+
+        // if the url from account verification matches the one from request, then set user as activated
+        if (!accountVerification.getUrl().equals(getVerificationUrl(key, ACCOUNT.getType())))
+            throw new ApiException("Invalid key!");
+
+        userRepository.activateUser(user.getId());
+        accountVerificationRepository.deleteAccountVerificationUrlByUserId(user.getId());
+    }
+    // END - To register with account verification
+
+    // START - To log in with two-factor authentication if mfa is enabled
     @Override
-    public UserResponse getByEmail(String email) {
-        UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
-        return mapToUserResponse(userPrincipal.getUser());
+    public UserResponse login(LoginForm form) {
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        UserResponse user = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
+        boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
+        if (sendSms)
+            sendMfaVerificationCode(user);
+        else {
+            user.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
+            user.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+        }
+        return user;
     }
 
     @Override
     @Transactional
     public void sendMfaVerificationCode(UserResponse user) {
         LocalDateTime expirationDate = getExpirationDate();
-//        String expirationDate = DateFormatUtils.format(DateUtils.addDays(new Date(), 1), DATE_FORMAT);
         String verificationCode = RandomStringUtils.randomAlphanumeric(8);
         log.info("Verification code: {}", verificationCode);
         final String message = "From SecureCapita\n\nVerification code: " + verificationCode;
@@ -127,7 +156,9 @@ public class UserServiceImpl implements UserService {
             return userResponse;
         } else throw new ApiException("Invalid code provided");
     }
+    // END - To log in with two-factor authentication if mfa is enabled
 
+    // START - To reset password when user is not logged in
     @Override
     @Transactional
     public void resetPassword(String email) {
@@ -165,33 +196,36 @@ public class UserServiceImpl implements UserService {
         userRepository.updatePasswordByUserId(verification.getUserId(), passwordEncoder.encode(form.getConfirmPassword()));
         resetPasswordVerificationRepository.deletePasswordVerificationCodesByUserId(verification.getUserId());
     }
+    // END - To reset password when user is not logged in
+
+    @Override
+    public UserResponse getByEmail(String email) {
+        UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
+        return mapToUserResponse(userPrincipal.getUser());
+    }
 
     private String getVerificationUrl(String key, String type) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/user/verify/" + type + "/" + key).toUriString();
     }
 
     private LocalDateTime getExpirationDate() {
-        return LocalDateTime.of(
-            LocalDateTime.now().getYear(),
-            LocalDateTime.now().getMonth(),
-            LocalDateTime.now().getDayOfMonth() + 1,
-            LocalDateTime.now().getHour(),
-            LocalDateTime.now().getMinute(),
-            LocalDateTime.now().getSecond()
-        );
+        Date date = DateUtils.addDays(new Date(), 1);
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
     private void sendEmail(String firstName, String email, String verificationUrl, VerificationType verificationType) {
-        log.info("Sending email to address {}...", email);
+        log.info("Sending code '{}' to email address '{}'...", verificationUrl, email);
     }
 
-    private User buildUser(UserRequest request, Integer roleId) {
+    private User buildUser(UserRegistrationForm request, Integer roleId) {
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRoleId(roleId);
+        if (request.getUsingMfa() != null)
+            user.setUsingMfa(request.getUsingMfa());
         return user;
     }
 }
