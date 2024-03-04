@@ -14,6 +14,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 
@@ -54,12 +55,30 @@ public class TokenProvider {
             subject = getJwtVerifier().verify(token).getSubject();
         } catch (TokenExpiredException exception) {
             request.setAttribute("expiredMessage", exception.getMessage());
+            throw exception;
         } catch (InvalidClaimException exception) {
             request.setAttribute("invalidClaim", exception.getMessage());
+            throw exception;
         } catch (JWTVerificationException exception) {
             request.setAttribute("tokenNotVerified", exception.getMessage());
+            throw exception;
         }
         return subject;
+    }
+
+    public Date getExpiration(String token, HttpServletRequest request) {
+        try {
+            return getJwtVerifier().verify(token).getExpiresAt();
+        } catch (TokenExpiredException exception) {
+            request.setAttribute("expiredMessage", exception.getMessage());
+            throw exception;
+        } catch (InvalidClaimException exception) {
+            request.setAttribute("invalidClaim", exception.getMessage());
+            throw exception;
+        } catch (JWTVerificationException exception) {
+            request.setAttribute("tokenNotVerified", exception.getMessage());
+            throw exception;
+        }
     }
 
     public List<GrantedAuthority> getAuthorities(String token) {
@@ -67,8 +86,8 @@ public class TokenProvider {
         return Arrays.stream(claims).map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
 
-    public Authentication getAuthentication(String email, List<GrantedAuthority> authorities, HttpServletRequest request) {
-        UsernamePasswordAuthenticationToken usernamePasswordAuthToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
+    public Authentication getAuthentication(UserDetails user, List<GrantedAuthority> authorities, HttpServletRequest request) {
+        UsernamePasswordAuthenticationToken usernamePasswordAuthToken = new UsernamePasswordAuthenticationToken(user, null, authorities);
         usernamePasswordAuthToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         return usernamePasswordAuthToken;
     }

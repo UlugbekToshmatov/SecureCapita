@@ -32,7 +32,8 @@ public class AuthFilter extends OncePerRequestFilter {
     private static final String TOKEN_PREFIX = "Bearer ";
     // PUBLIC_ROUTES must have exact routes unlike the ones in SecurityConfig
     private static final String[] PUBLIC_ROUTES = {
-        "/api/v1/user/login", "/api/v1/user/register", "/api/v1/user/verify/mfacode", "/api/v1/user/resetpassword"
+        "/api/v1/user/login", "/api/v1/user/register", "/api/v1/user/verify/mfacode", "/api/v1/user/resetpassword",
+        "/api/v1/user/refresh/token"
     };
     private static final String HTTP_OPTIONS_METHOD = "OPTIONS";
     private final TokenProvider tokenProvider;
@@ -49,9 +50,9 @@ public class AuthFilter extends OncePerRequestFilter {
             log.info("Validating user with email '{}' in Filter", email);
             if (tokenProvider.isTokenValid(email, token)) {
                 // pass UserPrincipal to Authentication to access any data of the requesting user anywhere
-//                UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
+                UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
-                Authentication authentication = tokenProvider.getAuthentication(email, authorities, request);
+                Authentication authentication = tokenProvider.getAuthentication(userPrincipal, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } else { SecurityContextHolder.clearContext(); }
             filter.doFilter(request, response);
@@ -66,8 +67,10 @@ public class AuthFilter extends OncePerRequestFilter {
     // This method is always called first before doFilterInternal, based on the result of which requests are either filtered or not.
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        return request.getHeader(AUTHORIZATION) == null || !request.getHeader(AUTHORIZATION).startsWith(TOKEN_PREFIX) ||
-            request.getMethod().equalsIgnoreCase(HTTP_OPTIONS_METHOD) || Arrays.asList(PUBLIC_ROUTES).contains(request.getRequestURI());
+        boolean shouldNotFilter = request.getHeader(AUTHORIZATION) == null || !request.getHeader(AUTHORIZATION).startsWith(TOKEN_PREFIX) ||
+            request.getMethod().equalsIgnoreCase(HTTP_OPTIONS_METHOD) || Arrays.stream(PUBLIC_ROUTES).anyMatch(route -> request.getRequestURI().contains(route));
+        log.info("Should Not Filter???????????????: {}", shouldNotFilter);
+        return shouldNotFilter;
     }
 
     private Map<String, String> getRequestHeaders(HttpServletRequest request) {

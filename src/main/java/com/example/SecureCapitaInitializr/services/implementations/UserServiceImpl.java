@@ -1,5 +1,6 @@
 package com.example.SecureCapitaInitializr.services.implementations;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
@@ -9,6 +10,7 @@ import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
 import com.example.SecureCapitaInitializr.models.resetPasswordVerification.ResetPasswordVerification;
+import com.example.SecureCapitaInitializr.models.token.Token;
 import com.example.SecureCapitaInitializr.models.twoFactorVerification.TwoFactorVerification;
 import com.example.SecureCapitaInitializr.models.accountverification.AccountVerification;
 import com.example.SecureCapitaInitializr.models.role.Role;
@@ -17,6 +19,7 @@ import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.models.user.UserWithRole;
 import com.example.SecureCapitaInitializr.repositories.*;
 import com.example.SecureCapitaInitializr.services.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -32,12 +35,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.Objects;
 import java.util.UUID;
 
 import static com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper.mapToUserResponse;
 import static com.example.SecureCapitaInitializr.enums.RoleType.ROLE_USER;
 import static com.example.SecureCapitaInitializr.enums.VerificationType.ACCOUNT;
 import static com.example.SecureCapitaInitializr.enums.VerificationType.PASSWORD;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +55,7 @@ public class UserServiceImpl implements UserService {
     private final ResetPasswordVerificationRepository<ResetPasswordVerification> resetPasswordVerificationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final TokenRepository<Token> tokenRepository;
     private final AuthenticationManager authenticationManager;
 
 
@@ -97,7 +103,7 @@ public class UserServiceImpl implements UserService {
 
     // START - To log in with two-factor authentication if mfa is enabled
     @Override
-    public UserResponse login(LoginForm form) {
+    public UserResponse login(LoginForm form, HttpServletRequest request) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         UserResponse user = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
@@ -105,8 +111,7 @@ public class UserServiceImpl implements UserService {
         if (sendSms)
             sendMfaVerificationCode(user);
         else {
-            user.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
-            user.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+            setTokens(userPrincipal, user, request);
         }
         return user;
     }
@@ -134,7 +139,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse verifyMfaCode(String email, String code) {
+    public UserResponse verifyMfaCode(String email, String code, HttpServletRequest request) {
         // get user by email
         UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email.trim().toLowerCase());
 
@@ -149,8 +154,7 @@ public class UserServiceImpl implements UserService {
         // if the two codes match, return response with tokens
         if (twoFactorVerification.getCode().equals(code)) {
             UserResponse userResponse = mapToUserResponse(userPrincipal.getUser());
-            userResponse.setAccessToken(tokenProvider.createAccessToken(userPrincipal));
-            userResponse.setRefreshToken(tokenProvider.createRefreshToken(userPrincipal));
+            setTokens(userPrincipal, userResponse, request);
             // invalidate the code sent back from email by user at the end for data integrity purposes in case of an error
             twoFactorVerificationRepository.deleteVerificationCodesByUserId(userPrincipal.getUser().getId());
             return userResponse;
@@ -204,6 +208,38 @@ public class UserServiceImpl implements UserService {
         return mapToUserResponse(userPrincipal.getUser());
     }
 
+    @Override
+    @Transactional
+    public UserResponse refreshAccessToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(AUTHORIZATION);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) throw new ApiException("Missing or Invalid token");
+        String jwt = authHeader.substring("Bearer ".length());
+        try {
+            // getSubject() validates both jwt itself and its expiration
+            String email = tokenProvider.getSubject(jwt, request);
+
+            // If code has reached here, then jwt is a valid and not expired token.
+            // Otherwise, getSubject() above would have thrown an exception.
+            Token token = tokenRepository.getByToken(jwt);
+            UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
+            if (Objects.equals(userPrincipal.getUser().getId(), token.getUserId())) {
+                UserResponse userResponse = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
+                String accessToken = tokenProvider.createAccessToken(userPrincipal);
+                tokenRepository.revokeAccessTokensByUserId(userResponse.getId());
+                tokenRepository.insertToken(userResponse.getId(), accessToken, tokenProvider.getExpiration(accessToken, request));
+                userResponse.setAccessToken(accessToken);
+                userResponse.setRefreshToken(jwt);
+                return userResponse;
+            } else {
+                tokenRepository.revokeToken(jwt);
+                throw new ApiException("Sorry, an error occurred?! Please, log in again.");
+            }
+        } catch (TokenExpiredException exception) {
+            tokenRepository.expireToken(jwt);
+            throw new ApiException("Refresh token expired. Please, log in again.");
+        }
+    }
+
     private String getVerificationUrl(String key, String type) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/user/verify/" + type + "/" + key).toUriString();
     }
@@ -227,5 +263,20 @@ public class UserServiceImpl implements UserService {
         if (request.getUsingMfa() != null)
             user.setUsingMfa(request.getUsingMfa());
         return user;
+    }
+
+    private void setTokens(UserPrincipal userPrincipal, UserResponse userResponse, HttpServletRequest request) {
+        String accessToken = tokenProvider.createAccessToken(userPrincipal);
+        String refreshToken = tokenProvider.createRefreshToken(userPrincipal);
+        tokenRepository.revokeAllTokensByUserId(userResponse.getId());
+        tokenRepository.insertTokens(
+            userResponse.getId(),
+            accessToken,
+            refreshToken,
+            tokenProvider.getExpiration(accessToken, request),
+            tokenProvider.getExpiration(refreshToken, request)
+        );
+        userResponse.setAccessToken(accessToken);
+        userResponse.setRefreshToken(refreshToken);
     }
 }

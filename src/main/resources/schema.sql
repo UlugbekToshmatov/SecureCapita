@@ -118,3 +118,20 @@ CREATE TABLE TwoFactorVerifications
     CONSTRAINT UQ_TwoFactorVerifications_User_Id_Code UNIQUE (user_id, code)
 --     CONSTRAINT UQ_TwoFactorVerifications_Code UNIQUE (code)
 );
+
+-- For keeping records of tokens
+DROP TABLE IF EXISTS Tokens CASCADE;
+
+CREATE TABLE Tokens
+(
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    token TEXT NOT NULL,
+    type VARCHAR(15) NOT NULL CHECK(type IN ('ACCESS_TOKEN', 'REFRESH_TOKEN')),
+    expires_at TIMESTAMP NOT NULL,
+    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked BOOLEAN DEFAULT FALSE,
+    expired BOOLEAN DEFAULT FALSE,
+    user_id BIGINT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT UQ_TokenVerifications_User_Id UNIQUE (token)
+);

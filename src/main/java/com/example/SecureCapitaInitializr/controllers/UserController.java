@@ -1,12 +1,10 @@
 package com.example.SecureCapitaInitializr.controllers;
 
-import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.models.HttpResponse;
-import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -55,8 +53,8 @@ public class UserController {
     }
 
     @PostMapping("login")
-    public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm form) {
-        UserResponse user = userService.login(form);
+    public ResponseEntity<HttpResponse> login(@RequestBody @Valid LoginForm form, HttpServletRequest request) {
+        UserResponse user = userService.login(form, request);
         boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
 
         return ResponseEntity.ok().body(
@@ -71,8 +69,12 @@ public class UserController {
     }
 
     @GetMapping("verify/mfacode/{email}/{code}")
-    public ResponseEntity<HttpResponse> verifyMfaCode(@PathVariable("email") String email, @PathVariable("code") String code) {
-        UserResponse userResponse = userService.verifyMfaCode(email, code);
+    public ResponseEntity<HttpResponse> verifyMfaCode(
+        @PathVariable("email") String email,
+        @PathVariable("code") String code,
+        HttpServletRequest request
+    ) {
+        UserResponse userResponse = userService.verifyMfaCode(email, code, request);
         return ResponseEntity.ok().body(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
@@ -93,6 +95,21 @@ public class UserController {
                 .statusCode(HttpStatus.OK.value())
                 .status(HttpStatus.OK)
                 .message("Profile retrieved")
+                .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @GetMapping("refresh/token")
+    public ResponseEntity<HttpResponse> getRefreshToken(HttpServletRequest request) {
+        UserResponse userResponse = userService.refreshAccessToken(request);
+
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Token refreshed")
                 .data(Map.of("user", userResponse))
                 .build()
         );
