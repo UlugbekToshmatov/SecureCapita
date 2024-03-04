@@ -240,6 +240,13 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Override
+    public void logout(Long userId) {
+        // check user existence first
+
+        tokenRepository.revokeAllTokensByUserId(userId);
+    }
+
     private String getVerificationUrl(String key, String type) {
         return ServletUriComponentsBuilder.fromCurrentContextPath().path("/api/v1/user/verify/" + type + "/" + key).toUriString();
     }

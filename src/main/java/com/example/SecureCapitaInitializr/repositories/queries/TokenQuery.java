@@ -34,4 +34,9 @@ public class TokenQuery {
             UPDATE tokens SET revoked=true
             WHERE user_id=:userId AND type=:type AND expired=false AND revoked=false
         """;
+
+    public static final String SELECT_COUNT_BY_TOKEN_QUERY = """
+            SELECT count(*) > 0 FROM tokens
+            WHERE token=:token AND revoked=false AND expired=false
+        """;
 }

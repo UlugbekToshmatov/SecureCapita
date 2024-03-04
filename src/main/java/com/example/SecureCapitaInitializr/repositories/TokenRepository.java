@@ -12,4 +12,5 @@ public interface TokenRepository<T extends Token> {
     void revokeToken(String token);
     void revokeAllTokensByUserId(Long userId);
     void revokeAccessTokensByUserId(Long userId);
+    Boolean isTokenNotRevoked(String token);
 }

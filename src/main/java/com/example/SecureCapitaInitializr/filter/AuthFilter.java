@@ -1,8 +1,11 @@
 package com.example.SecureCapitaInitializr.filter;
 
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
+import com.example.SecureCapitaInitializr.models.token.Token;
+import com.example.SecureCapitaInitializr.models.user.User;
 import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
-import com.example.SecureCapitaInitializr.repositories.implementations.UserRepositoryImpl;
+import com.example.SecureCapitaInitializr.repositories.TokenRepository;
+import com.example.SecureCapitaInitializr.repositories.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +21,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static com.example.SecureCapitaInitializr.utils.ExceptionUtils.processError;
 import static java.util.Optional.ofNullable;
@@ -37,18 +39,16 @@ public class AuthFilter extends OncePerRequestFilter {
     };
     private static final String HTTP_OPTIONS_METHOD = "OPTIONS";
     private final TokenProvider tokenProvider;
-    private final UserRepositoryImpl userRepository;
-    private final String TOKEN_KEY = "token";
-    private final String EMAIL_KEY = "email";
+    private final UserRepository<User> userRepository;
+    private final TokenRepository<Token> tokenRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filter) throws ServletException, IOException {
         try {
-//            Map<String, String> headers = getRequestHeaders(request);
             String token = getToken(request);
             String email = tokenProvider.getSubject(token, request);
             log.info("Validating user with email '{}' in Filter", email);
-            if (tokenProvider.isTokenValid(email, token)) {
+            if (tokenProvider.isTokenValid(email, token) && tokenRepository.isTokenNotRevoked(token)) {
                 // pass UserPrincipal to Authentication to access any data of the requesting user anywhere
                 UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
@@ -71,13 +71,6 @@ public class AuthFilter extends OncePerRequestFilter {
             request.getMethod().equalsIgnoreCase(HTTP_OPTIONS_METHOD) || Arrays.stream(PUBLIC_ROUTES).anyMatch(route -> request.getRequestURI().contains(route));
         log.info("Should Not Filter???????????????: {}", shouldNotFilter);
         return shouldNotFilter;
-    }
-
-    private Map<String, String> getRequestHeaders(HttpServletRequest request) {
-        return Map.of(
-            EMAIL_KEY, tokenProvider.getSubject(getToken(request), request),
-            TOKEN_KEY, getToken(request)
-        );
     }
 
     private String getToken(HttpServletRequest request) {

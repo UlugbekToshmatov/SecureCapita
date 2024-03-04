@@ -68,6 +68,19 @@ public class TokenRepositoryImpl implements TokenRepository<Token> {
         jdbc.update(REVOKE_ALL_ACCESS_TOKENS_BY_USER_ID_QUERY, Map.of("userId", userId, "type", TokenType.ACCESS_TOKEN.name()));
     }
 
+    @Override
+    public Boolean isTokenNotRevoked(String token) {
+        try {
+            return jdbc.queryForObject(SELECT_COUNT_BY_TOKEN_QUERY, Map.of("token", token), Boolean.class);
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("No such token found!");
+        } catch (Exception exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("An error occurred. Please, try again later.");
+        }
+    }
+
     private SqlParameterSource getParameters(Long userId, TokenType type, String token, Date expiresAt) {
         return new MapSqlParameterSource(
             Map.of(

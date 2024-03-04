@@ -25,4 +25,7 @@ public interface UserService {
 
 
     UserResponse refreshAccessToken(HttpServletRequest request);
+
+
+    void logout(Long userId);
 }

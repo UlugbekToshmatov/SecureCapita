@@ -1,10 +1,12 @@
 package com.example.SecureCapitaInitializr.controllers;
 
+import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
 import com.example.SecureCapitaInitializr.models.HttpResponse;
+import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.services.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -88,7 +90,7 @@ public class UserController {
 
     @GetMapping("profile")
     public ResponseEntity<HttpResponse> getProfile(Authentication authentication) {
-        UserResponse userResponse = userService.getByEmail(authentication.getName() /*authentication.getPrincipal()*/);
+        UserResponse userResponse = UserDTOMapper.mapToUserResponse(((UserPrincipal) authentication.getPrincipal()).getUser());
         return ResponseEntity.ok().body(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
@@ -158,6 +160,20 @@ public class UserController {
     }
 
     // END - To reset password when user is not logged in
+
+
+    @GetMapping("logout")
+    public ResponseEntity<HttpResponse> logout(Authentication authentication) {
+        userService.logout(((UserPrincipal) authentication.getPrincipal()).getUser().getId());
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Logged out successfully")
+                .build()
+        );
+    }
 
     @RequestMapping("error")
     public ResponseEntity<HttpResponse> error(HttpServletRequest request) {
