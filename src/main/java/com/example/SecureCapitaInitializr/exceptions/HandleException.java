@@ -141,7 +141,7 @@ public class HandleException extends ResponseEntityExceptionHandler implements E
                 .developerMessage(exception.getMessage())
                 .status(HttpStatus.FORBIDDEN)
                 .statusCode(HttpStatus.FORBIDDEN.value())
-                .build(), HttpStatus.BAD_REQUEST
+                .build(), HttpStatus.FORBIDDEN
         );
     }
 
@@ -155,7 +155,7 @@ public class HandleException extends ResponseEntityExceptionHandler implements E
                 .developerMessage(exception.getMessage())
                 .status(HttpStatus.UNAUTHORIZED)
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
-                .build(), HttpStatus.BAD_REQUEST
+                .build(), HttpStatus.UNAUTHORIZED
         );
     }
 

@@ -73,6 +73,16 @@
 			<artifactId>java-jwt</artifactId>
 			<version>4.2.1</version>
 		</dependency>
+
+<!--	Dependency to implement Two-Factor Authentication with Google Authenticator
+		to recognize generated QR codes	   -->
+<!--	https://www.youtube.com/watch?v=NzuC52eLGKo&ab_channel=BoualiAli	16:05	-->
+<!--	https://github.com/samdjstevens/java-totp	-->
+<!--		<dependency>-->
+<!--			<groupId>dev.samstevens.totp</groupId>-->
+<!--			<artifactId>totp</artifactId>-->
+<!--			<version>1.7.1</version>-->
+<!--		</dependency>-->
 	</dependencies>
 
 	<profiles>

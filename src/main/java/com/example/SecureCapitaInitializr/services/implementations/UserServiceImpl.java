@@ -19,7 +19,9 @@ import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.models.user.UserWithRole;
 import com.example.SecureCapitaInitializr.repositories.*;
 import com.example.SecureCapitaInitializr.services.UserService;
+import com.example.SecureCapitaInitializr.utils.ExceptionUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -104,16 +106,24 @@ public class UserServiceImpl implements UserService {
     // START - To log in with two-factor authentication if mfa is enabled
     @Override
     public UserResponse login(LoginForm form, HttpServletRequest request) {
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        UserResponse user = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
-        boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
-        if (sendSms)
-            sendMfaVerificationCode(user);
-        else {
-            setTokens(userPrincipal, user, request);
+        try {
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(form.getEmail().trim().toLowerCase(), form.getPassword()));
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            UserResponse user = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
+            boolean sendSms = user.isUsingMfa() && user.getPhone() != null;
+            if (sendSms)
+                sendMfaVerificationCode(user);
+            else {
+                setTokens(userPrincipal, user, request);
+            }
+            return user;
+        } catch (Exception exception) {
+            // The reason why we are throwing ApiException is that authenticate() method throws AuthenticationException
+            // with message 'User not found', and exception handler handles AuthenticationException returning
+            // UNAUTHORIZED error with message 'log in to access', which is not correct. The error response actually
+            // should be BAD_REQUEST with message 'User not found'
+            throw new ApiException(exception.getMessage());
         }
-        return user;
     }
 
     @Override
