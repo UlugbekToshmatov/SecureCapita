@@ -1,6 +1,6 @@
 package com.example.SecureCapitaInitializr.repositories.implementations;
 
-import com.example.SecureCapitaInitializr.dtos.user.UpdateForm;
+import com.example.SecureCapitaInitializr.dtos.user.UpdateUserForm;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
 import com.example.SecureCapitaInitializr.models.user.User;
 import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
@@ -137,11 +137,25 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
     }
 
     @Override
-    public UserPrincipal updateUserDetails(Long userId, UpdateForm form) {
+    public UserWithRole updateUserDetails(Long userId, UpdateUserForm form) {
         try {
             log.info("Updating user with id=" + userId);
             List<UserWithRole> resultSet = jdbc.query(UPDATE_USER_DETAILS_BY_USER_ID_QUERY, getUserUpdateSqlParameterSource(userId, form), new UserWithRoleRowMapper());
-            return new UserPrincipal(resultSet.get(0));
+            return resultSet.get(0);
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("User with id=" + userId + " not found");
+        } catch (Exception exception) {
+            throw new ApiException("An error occurred. Please, try again later.");
+        }
+    }
+
+    @Override
+    public UserWithRole updatePassword(Long userId, String newPassword) {
+        try {
+            log.info("Updating password of user with id=" + userId);
+            List<UserWithRole> resultSet = jdbc.query(UPDATE_USER_PASSWORD_BY_USER_ID_QUERY, Map.of("id", userId, "newPassword", newPassword), new UserWithRoleRowMapper());
+            return resultSet.get(0);
         } catch (EmptyResultDataAccessException exception) {
             log.error(exception.getMessage());
             throw new ApiException("User with id=" + userId + " not found");
@@ -165,7 +179,7 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         return parameterSource;
     }
 
-    private SqlParameterSource getUserUpdateSqlParameterSource(Long userId, UpdateForm form) {
+    private SqlParameterSource getUserUpdateSqlParameterSource(Long userId, UpdateUserForm form) {
         return new MapSqlParameterSource(
             Map.of(
                 "id", userId,

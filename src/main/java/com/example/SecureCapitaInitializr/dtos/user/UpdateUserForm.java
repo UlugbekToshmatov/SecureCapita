@@ -8,7 +8,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateForm {
+public class UpdateUserForm {
     @NotEmpty(message = "First name cannot be empty")
     private String firstName;
     @NotEmpty(message = "Last name cannot be empty")

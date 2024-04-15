@@ -26,5 +26,7 @@ public interface UserService {
 
     void logout(Long userId);
 
-    UserResponse updateUserDetails(Long userId, UpdateForm form);
+
+    UserResponse updateUserDetails(Long userId, UpdateUserForm form);
+    UserResponse updatePassword(Long userId, UpdatePasswordForm form);
 }

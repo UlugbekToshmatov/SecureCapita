@@ -25,6 +25,7 @@ import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -255,16 +256,32 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse updateUserDetails(Long userId, UpdateForm form) {
+    public UserResponse updateUserDetails(Long userId, UpdateUserForm form) {
         if (!userRepository.existsByUserId(userId))
             throw new ApiException("No user found with id="+ userId);
 
         if (!Objects.equals(UserUtils.getCurrentUserId(), userId))
             throw new ApiException("You are not allowed to update other users' details!");
 
-        UserPrincipal updateUserDetails = userRepository.updateUserDetails(userId, form);
+        UserWithRole updateUserDetails = userRepository.updateUserDetails(userId, form);
         // Tokens could be set to user response here before returning, but tokens are saved in the browser in the front end
-        return mapToUserResponse(updateUserDetails.getUser());
+        return mapToUserResponse(updateUserDetails);
+    }
+
+    @Override
+    public UserResponse updatePassword(Long userId, UpdatePasswordForm form) {
+        if (!form.getNewPassword().equals(form.getConfirmNewPassword()))
+            throw new  ApiException("New password and confirming new password mismatch. Please, try again.");
+
+        if (form.getCurrentPassword().equals(form.getNewPassword()))
+            throw new ApiException("Current password and new password are identical. Please, enter a new password");
+
+        UserDetails user = userRepository.getUserById(userId);
+        if (!passwordEncoder.matches(form.getCurrentPassword(), user.getPassword()))
+            throw new ApiException("Incorrect current password. Please, try again.");
+
+        UserWithRole userWithRole = userRepository.updatePassword(userId, passwordEncoder.encode(form.getNewPassword()));
+        return mapToUserResponse(userWithRole);
     }
 
     private String getVerificationUrl(String key, String type) {

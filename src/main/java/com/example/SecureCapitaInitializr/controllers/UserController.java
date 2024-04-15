@@ -1,14 +1,11 @@
 package com.example.SecureCapitaInitializr.controllers;
 
 import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
-import com.example.SecureCapitaInitializr.dtos.user.UpdateForm;
-import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
-import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
+import com.example.SecureCapitaInitializr.dtos.user.*;
 import com.example.SecureCapitaInitializr.models.HttpResponse;
 import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.services.UserService;
+import com.example.SecureCapitaInitializr.utils.UserUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -105,7 +102,7 @@ public class UserController {
 
     @PatchMapping("update/{user-id}")
 //    @PreAuthorize("hasAuthority('READ:USER')")
-    public ResponseEntity<HttpResponse> updateProfile(@PathVariable("user-id") Long userId, @RequestBody @Valid UpdateForm form) {
+    public ResponseEntity<HttpResponse> updateProfile(@PathVariable("user-id") Long userId, @RequestBody @Valid UpdateUserForm form) {
         UserResponse updatedUser = userService.updateUserDetails(userId, form);
         return ResponseEntity.ok().body(
             HttpResponse.builder()
@@ -113,6 +110,21 @@ public class UserController {
                 .statusCode(HttpStatus.OK.value())
                 .status(HttpStatus.OK)
                 .message("User details updated successfully")
+                .data(Map.of("user", updatedUser))
+                .build()
+        );
+    }
+
+    @PatchMapping("update/password")
+    public ResponseEntity<HttpResponse> updatePassword(@RequestBody @Valid UpdatePasswordForm form) {
+        // Here, no need to return user response. But, this will be needed later when working with front end.
+        UserResponse updatedUser = userService.updatePassword(UserUtils.getCurrentUserId(), form);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("Password updated successfully")
                 .data(Map.of("user", updatedUser))
                 .build()
         );

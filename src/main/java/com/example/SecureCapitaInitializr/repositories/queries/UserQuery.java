@@ -54,4 +54,12 @@ public class UserQuery {
             WHERE u.id = :id AND u.deleted = false AND u.role_id = r.id
             RETURNING u.id, u.first_name, u.last_name, u.email, u.password, u.address, u.phone, u.title, u.bio, u.image_url, u.enabled, u.locked, u.using_mfa, u.created_date, u.modified_date, r.name, r.permission;
         """;
+
+    public static final String UPDATE_USER_PASSWORD_BY_USER_ID_QUERY = """
+            UPDATE users AS u
+            SET password=:newPassword, modified_date=CURRENT_TIMESTAMP
+            FROM roles AS r
+            WHERE u.id = :id AND u.deleted = false AND u.role_id = r.id
+            RETURNING u.id, u.first_name, u.last_name, u.email, u.password, u.address, u.phone, u.title, u.bio, u.image_url, u.enabled, u.locked, u.using_mfa, u.created_date, u.modified_date, r.name, r.permission;
+        """;
 }

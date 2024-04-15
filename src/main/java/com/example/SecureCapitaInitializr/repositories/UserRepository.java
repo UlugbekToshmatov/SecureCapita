@@ -1,8 +1,8 @@
 package com.example.SecureCapitaInitializr.repositories;
 
-import com.example.SecureCapitaInitializr.dtos.user.UpdateForm;
+import com.example.SecureCapitaInitializr.dtos.user.UpdateUserForm;
 import com.example.SecureCapitaInitializr.models.user.User;
-import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
+import com.example.SecureCapitaInitializr.models.user.UserWithRole;
 import jakarta.validation.constraints.NotEmpty;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -24,5 +24,6 @@ public interface UserRepository<T extends User> {
     void updatePasswordByUserId(Long userId, @NotEmpty(message = "New password cannot be empty") String newPassword);
     void activateUser(Long userId);
     Boolean existsByUserId(Long id);
-    UserPrincipal updateUserDetails(Long userId, UpdateForm form);
+    UserWithRole updateUserDetails(Long userId, UpdateUserForm form);
+    UserWithRole updatePassword(Long userId, String newPassword);
 }

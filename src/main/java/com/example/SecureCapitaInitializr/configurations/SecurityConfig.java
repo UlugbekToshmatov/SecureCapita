@@ -37,10 +37,12 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf().disable().cors().disable();
+        // After adding cors configurations, do not disable them
+        http.csrf().disable().cors();//.disable();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.authorizeHttpRequests().requestMatchers(PUBLIC_URLS).permitAll();
         http.authorizeHttpRequests().requestMatchers(HttpMethod.PATCH, "/api/v1/user/update/**").hasAuthority("READ:USER");
+        http.authorizeHttpRequests().requestMatchers(HttpMethod.PATCH, "/api/v1/user/update/password").hasAuthority("READ:USER");
         http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/user/delete/**").hasAuthority("DELETE:USER");
         http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/customer/delete/**").hasAuthority("DELETE:CUSTOMER");
         http.exceptionHandling().accessDeniedHandler(accessDeniedHandler).authenticationEntryPoint(authenticationEntryPoint);
