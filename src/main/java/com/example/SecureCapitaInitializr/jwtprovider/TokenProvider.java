@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -37,22 +38,22 @@ public class TokenProvider {
     public String createAccessToken(UserPrincipal userPrincipal) {
         String[] claims = getClaimsFromUser(userPrincipal);
         return JWT.create().withIssuer(GET_ARRAYS_LLC).withAudience(CUSTOMER_MANAGEMENT_SERVICE)
-            .withIssuedAt(new Date()).withSubject(userPrincipal.getUsername()).withArrayClaim(AUTHORITIES, claims)
+            .withIssuedAt(new Date()).withSubject(String.valueOf(userPrincipal.getUser().getId())).withArrayClaim(AUTHORITIES, claims)
             .withExpiresAt(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_TIME))
             .sign(Algorithm.HMAC512(secret.getBytes()));
     }
 
     public String createRefreshToken(UserPrincipal userPrincipal) {
         return JWT.create().withIssuer(GET_ARRAYS_LLC).withAudience(CUSTOMER_MANAGEMENT_SERVICE)
-            .withIssuedAt(new Date()).withSubject(userPrincipal.getUsername())
+            .withIssuedAt(new Date()).withSubject(String.valueOf(userPrincipal.getUser().getId()))
             .withExpiresAt(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION_TIME))
             .sign(Algorithm.HMAC512(secret.getBytes()));
     }
 
-    public String getSubject(String token, HttpServletRequest request) {
-        String subject = null;
+    public Long getSubject(String token, HttpServletRequest request) {
+        Long subject;
         try {
-            subject = getJwtVerifier().verify(token).getSubject();
+            subject = Long.valueOf(getJwtVerifier().verify(token).getSubject());
         } catch (TokenExpiredException exception) {
             request.setAttribute("expiredMessage", exception.getMessage());
             throw exception;
@@ -93,16 +94,15 @@ public class TokenProvider {
     }
 
     // If token was expired/invalid, getSubject() would return null, which would cause getRequestHeaders() throw NullPointerException.
-    // So, if this method is reached, then getSubject() must have returned a valid email from a valid token (not expired).
-    public boolean isTokenValid(String email, String token) {
+    // So, if this method is reached, then getSubject() must have returned a valid id from a valid unexpired token.
+    public boolean isTokenValid(Long userId, String token) {
         JWTVerifier verifier = getJwtVerifier();
 
-        // Check if email matches the subject/email in token
-        String subject = verifier.verify(token).getSubject();
-        if (StringUtils.isEmpty(email) || !subject.equalsIgnoreCase(email))
+        // Check if userId is not null
+        if (Objects.isNull(userId))
             return false;
 
-        // Since this method is reached and getSubject() returned a valid email from a valid token, this check is unnecessary
+        // Since this method is reached and getSubject() returned a valid id from a valid token, this check is unnecessary
         return !isTokenExpired(verifier, token);
     }
 

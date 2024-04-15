@@ -1,5 +1,6 @@
 package com.example.SecureCapitaInitializr.repositories.implementations;
 
+import com.example.SecureCapitaInitializr.dtos.user.UpdateForm;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
 import com.example.SecureCapitaInitializr.models.user.User;
 import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import static com.example.SecureCapitaInitializr.repositories.queries.UserQuery.*;
@@ -91,6 +93,20 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         }
     }
 
+    @Override
+    public UserDetails getUserById(Long userId) {
+        try {
+            log.info("Getting user with id=" + userId);
+            UserWithRole user = jdbc.queryForObject(SELECT_USER_WITH_ROLE_BY_USER_ID_QUERY, Map.of("userId", userId), new UserWithRoleRowMapper() /*UserWithRole.class*/);
+            return new UserPrincipal(user);
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("User with id=" + userId + " not found");
+        } catch (Exception exception) {
+            throw new ApiException("An error occurred. Please, try again later.");
+        }
+    }
+
     // findByEmailAndDeletedFalse() returns just User without role
     @Override
     public User findByEmailAndDeletedFalse(String email) {
@@ -115,6 +131,25 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         jdbc.update(UPDATE_ENABLED_BY_USER_ID_QUERY, Map.of("userId", userId));
     }
 
+    @Override
+    public Boolean existsByUserId(Long id) {
+        return jdbc.queryForObject(EXISTS_BY_USER_ID_QUERY, Map.of("userId", id), Boolean.class);
+    }
+
+    @Override
+    public UserPrincipal updateUserDetails(Long userId, UpdateForm form) {
+        try {
+            log.info("Updating user with id=" + userId);
+            List<UserWithRole> resultSet = jdbc.query(UPDATE_USER_DETAILS_BY_USER_ID_QUERY, getUserUpdateSqlParameterSource(userId, form), new UserWithRoleRowMapper());
+            return new UserPrincipal(resultSet.get(0));
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("User with id=" + userId + " not found");
+        } catch (Exception exception) {
+            throw new ApiException("An error occurred. Please, try again later.");
+        }
+    }
+
     private SqlParameterSource getSqlParameterSource(User user) {
         MapSqlParameterSource parameterSource = new MapSqlParameterSource(
             Map.of(
@@ -128,5 +163,20 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
         if (user.getUsingMfa() != null)
             parameterSource.addValue("usingMfa", user.getUsingMfa());
         return parameterSource;
+    }
+
+    private SqlParameterSource getUserUpdateSqlParameterSource(Long userId, UpdateForm form) {
+        return new MapSqlParameterSource(
+            Map.of(
+                "id", userId,
+                "firstName", form.getFirstName(),
+                "lastName", form.getLastName(),
+                "email", form.getEmail().trim().toLowerCase(),
+                "phone", form.getPhone(),
+                "address", form.getAddress(),
+                "title", form.getTitle(),
+                "bio", form.getBio()
+            )
+        );
     }
 }

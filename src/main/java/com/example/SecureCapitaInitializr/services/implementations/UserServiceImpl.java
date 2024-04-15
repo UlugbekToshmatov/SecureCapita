@@ -2,10 +2,7 @@ package com.example.SecureCapitaInitializr.services.implementations;
 
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
-import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
-import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
+import com.example.SecureCapitaInitializr.dtos.user.*;
 import com.example.SecureCapitaInitializr.enums.VerificationType;
 import com.example.SecureCapitaInitializr.exceptions.ApiException;
 import com.example.SecureCapitaInitializr.jwtprovider.TokenProvider;
@@ -19,9 +16,8 @@ import com.example.SecureCapitaInitializr.models.user.UserPrincipal;
 import com.example.SecureCapitaInitializr.models.user.UserWithRole;
 import com.example.SecureCapitaInitializr.repositories.*;
 import com.example.SecureCapitaInitializr.services.UserService;
-import com.example.SecureCapitaInitializr.utils.ExceptionUtils;
+import com.example.SecureCapitaInitializr.utils.UserUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -226,12 +222,12 @@ public class UserServiceImpl implements UserService {
         String jwt = authHeader.substring("Bearer ".length());
         try {
             // getSubject() validates both jwt itself and its expiration
-            String email = tokenProvider.getSubject(jwt, request);
+            Long userId = tokenProvider.getSubject(jwt, request);
 
             // If code has reached here, then jwt is a valid and not expired token.
             // Otherwise, getSubject() above would have thrown an exception.
             Token token = tokenRepository.getByToken(jwt);
-            UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
+            UserPrincipal userPrincipal = (UserPrincipal) userRepository.getUserById(userId);
             if (Objects.equals(userPrincipal.getUser().getId(), token.getUserId())) {
                 UserResponse userResponse = UserDTOMapper.mapToUserResponse(userPrincipal.getUser());
                 String accessToken = tokenProvider.createAccessToken(userPrincipal);
@@ -252,9 +248,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void logout(Long userId) {
-        // check user existence first
+        if (!userRepository.existsByUserId(userId))
+            throw new ApiException("No user found with id="+ userId);
 
         tokenRepository.revokeAllTokensByUserId(userId);
+    }
+
+    @Override
+    public UserResponse updateUserDetails(Long userId, UpdateForm form) {
+        if (!userRepository.existsByUserId(userId))
+            throw new ApiException("No user found with id="+ userId);
+
+        if (!Objects.equals(UserUtils.getCurrentUserId(), userId))
+            throw new ApiException("You are not allowed to update other users' details!");
+
+        UserPrincipal updateUserDetails = userRepository.updateUserDetails(userId, form);
+        // Tokens could be set to user response here before returning, but tokens are saved in the browser in the front end
+        return mapToUserResponse(updateUserDetails.getUser());
     }
 
     private String getVerificationUrl(String key, String type) {

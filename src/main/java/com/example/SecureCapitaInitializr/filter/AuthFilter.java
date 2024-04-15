@@ -46,11 +46,11 @@ public class AuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filter) throws ServletException, IOException {
         try {
             String token = getToken(request);
-            String email = tokenProvider.getSubject(token, request);
-            log.info("Validating user with email '{}' in Filter", email);
-            if (tokenProvider.isTokenValid(email, token) && tokenRepository.isTokenNotRevoked(token)) {
+            Long userId = tokenProvider.getSubject(token, request);
+            log.info("Validating user with id={} in Filter", userId);
+            if (tokenProvider.isTokenValid(userId, token) && tokenRepository.isTokenNotRevoked(token)) {
                 // pass UserPrincipal to Authentication to access any data of the requesting user anywhere
-                UserPrincipal userPrincipal = (UserPrincipal) userRepository.loadUserByUsername(email);
+                UserPrincipal userPrincipal = (UserPrincipal) userRepository.getUserById(userId);
                 List<GrantedAuthority> authorities = tokenProvider.getAuthorities(token);
                 Authentication authentication = tokenProvider.getAuthentication(userPrincipal, authorities, request);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -69,7 +69,7 @@ public class AuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         boolean shouldNotFilter = request.getHeader(AUTHORIZATION) == null || !request.getHeader(AUTHORIZATION).startsWith(TOKEN_PREFIX) ||
             request.getMethod().equalsIgnoreCase(HTTP_OPTIONS_METHOD) || Arrays.stream(PUBLIC_ROUTES).anyMatch(route -> request.getRequestURI().contains(route));
-        log.info("Should Not Filter???????????????: {}", shouldNotFilter);
+        log.info("Should Not Filter???: {}", shouldNotFilter);
         return shouldNotFilter;
     }
 

@@ -20,7 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableWebSecurity
+@EnableWebSecurity/*(debug = true)*/
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -40,8 +40,9 @@ public class SecurityConfig {
         http.csrf().disable().cors().disable();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
         http.authorizeHttpRequests().requestMatchers(PUBLIC_URLS).permitAll();
-        http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/user/delete/**").hasAnyAuthority("DELETE:USER");
-        http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/customer/delete/**").hasAnyAuthority("DELETE:CUSTOMER");
+        http.authorizeHttpRequests().requestMatchers(HttpMethod.PATCH, "/api/v1/user/update/**").hasAuthority("READ:USER");
+        http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/user/delete/**").hasAuthority("DELETE:USER");
+        http.authorizeHttpRequests().requestMatchers(HttpMethod.DELETE, "/api/v1/customer/delete/**").hasAuthority("DELETE:CUSTOMER");
         http.exceptionHandling().accessDeniedHandler(accessDeniedHandler).authenticationEntryPoint(authenticationEntryPoint);
         http.authorizeHttpRequests().anyRequest().authenticated();
         http.addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);

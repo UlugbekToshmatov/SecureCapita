@@ -1,9 +1,6 @@
 package com.example.SecureCapitaInitializr.services;
 
-import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
-import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
-import com.example.SecureCapitaInitializr.dtos.user.UserResponse;
+import com.example.SecureCapitaInitializr.dtos.user.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface UserService {
@@ -28,4 +25,6 @@ public interface UserService {
 
 
     void logout(Long userId);
+
+    UserResponse updateUserDetails(Long userId, UpdateForm form);
 }

@@ -1,6 +1,7 @@
 package com.example.SecureCapitaInitializr.controllers;
 
 import com.example.SecureCapitaInitializr.dtomappers.UserDTOMapper;
+import com.example.SecureCapitaInitializr.dtos.user.UpdateForm;
 import com.example.SecureCapitaInitializr.dtos.user.LoginForm;
 import com.example.SecureCapitaInitializr.dtos.user.NewPasswordForm;
 import com.example.SecureCapitaInitializr.dtos.user.UserRegistrationForm;
@@ -98,6 +99,21 @@ public class UserController {
                 .status(HttpStatus.OK)
                 .message("Profile retrieved")
                 .data(Map.of("user", userResponse))
+                .build()
+        );
+    }
+
+    @PatchMapping("update/{user-id}")
+//    @PreAuthorize("hasAuthority('READ:USER')")
+    public ResponseEntity<HttpResponse> updateProfile(@PathVariable("user-id") Long userId, @RequestBody @Valid UpdateForm form) {
+        UserResponse updatedUser = userService.updateUserDetails(userId, form);
+        return ResponseEntity.ok().body(
+            HttpResponse.builder()
+                .timeStamp(LocalDateTime.now().toString())
+                .statusCode(HttpStatus.OK.value())
+                .status(HttpStatus.OK)
+                .message("User details updated successfully")
+                .data(Map.of("user", updatedUser))
                 .build()
         );
     }

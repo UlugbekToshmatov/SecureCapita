@@ -21,6 +21,12 @@ public class UserQuery {
             WHERE u.email=:email AND u.deleted=false
         """;
 
+    public static String SELECT_USER_WITH_ROLE_BY_USER_ID_QUERY = """
+            SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.address, u.phone, u.title, u.bio, u.image_url, u.enabled, u.locked, u.using_mfa, u.created_date, u.modified_date, r.name, r.permission
+            FROM users AS u JOIN roles AS r ON u.role_id=r.id
+            WHERE u.id=:userId AND u.deleted=false
+        """;
+
     public static String SELECT_ALL_BY_EMAIL_QUERY = """
             SELECT * FROM users
             WHERE email=:email AND deleted=false
@@ -34,5 +40,18 @@ public class UserQuery {
     public static final String UPDATE_ENABLED_BY_USER_ID_QUERY = """
             UPDATE users SET enabled=true, modified_date=CURRENT_TIMESTAMP
             WHERE id=:userId AND deleted=false
+        """;
+
+    public static final String EXISTS_BY_USER_ID_QUERY = """
+            SELECT count(*) > 0 AS exists FROM users
+            WHERE id=:userId AND deleted=false
+        """;
+
+    public static final String UPDATE_USER_DETAILS_BY_USER_ID_QUERY = """
+            UPDATE users AS u
+            SET first_name=:firstName, last_name=:lastName, email=:email, phone=:phone, address=:address, title=:title, bio=:bio, modified_date=CURRENT_TIMESTAMP
+            FROM roles AS r
+            WHERE u.id = :id AND u.deleted = false AND u.role_id = r.id
+            RETURNING u.id, u.first_name, u.last_name, u.email, u.password, u.address, u.phone, u.title, u.bio, u.image_url, u.enabled, u.locked, u.using_mfa, u.created_date, u.modified_date, r.name, r.permission;
         """;
 }
