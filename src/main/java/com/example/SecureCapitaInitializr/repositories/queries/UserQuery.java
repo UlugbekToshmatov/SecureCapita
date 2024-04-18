@@ -32,6 +32,11 @@ public class UserQuery {
             WHERE email=:email AND deleted=false
         """;
 
+    public static String SELECT_BY_ID_QUERY = """
+            SELECT * FROM users
+            WHERE id=:userId AND deleted=false
+        """;
+
     public static final String UPDATE_PASSWORD_BY_ID = """
             UPDATE users SET password=:confirmPassword, modified_date=CURRENT_TIMESTAMP
             WHERE id=:userId AND deleted=false

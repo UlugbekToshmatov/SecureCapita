@@ -61,7 +61,15 @@ public class UserRepositoryImpl implements UserRepository<User>, UserDetailsServ
 
     @Override
     public User get(Long id) {
-        return null;
+        log.info("Loading user with id=" + id);
+        try {
+            return jdbc.queryForObject(SELECT_BY_ID_QUERY, Map.of("userId", id), new UserRowMapper());
+        } catch (EmptyResultDataAccessException exception) {
+            log.error(exception.getMessage());
+            throw new ApiException("User with id=" + id + " not found");
+        } catch (Exception exception) {
+            throw new ApiException("An error occurred. Please, try again later.");
+        }
     }
 
     @Override

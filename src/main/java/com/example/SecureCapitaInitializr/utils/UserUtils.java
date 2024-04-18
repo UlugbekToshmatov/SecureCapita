@@ -8,4 +8,8 @@ public class UserUtils {
     public static Long getCurrentUserId() {
         return ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser().getId();
     }
+
+    public static UserPrincipal getCurrentUser() {
+        return (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
 }
