@@ -137,7 +137,7 @@ public class HandleException extends ResponseEntityExceptionHandler implements E
         return new ResponseEntity<>(
             HttpResponse.builder()
                 .timeStamp(LocalDateTime.now().toString())
-                .reason("Access denied. You do not have permission")
+                .reason("Access denied. You do not have permission.")
                 .developerMessage(exception.getMessage())
                 .status(HttpStatus.FORBIDDEN)
                 .statusCode(HttpStatus.FORBIDDEN.value())
